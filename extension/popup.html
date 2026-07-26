@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusFlow Shield Popup</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0b0c10;
+      color: #f1f5f9;
+      margin: 0;
+      padding: 16px;
+      width: 260px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 8px;
+    }
+    .logo {
+      font-size: 20px;
+    }
+    .title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #818cf8;
+    }
+    .status-card {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .status-text {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      color: #94a3b8;
+    }
+    .status-val {
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .active {
+      color: #10b981;
+    }
+    .inactive {
+      color: #ef4444;
+    }
+    .btn {
+      width: 100%;
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="logo">🚀</span>
+    <span class="title">FocusFlow Shield</span>
+  </div>
+  <div class="status-card">
+    <div class="status-text">Shield Status</div>
+    <div id="status-val" class="status-val inactive">Inactive</div>
+  </div>
+  <button id="open-btn" class="btn">Open FocusFlow</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>
