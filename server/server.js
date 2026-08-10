@@ -36,9 +36,21 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Enable Cross-Origin Resource Sharing (CORS)
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000'
+].filter(Boolean);
+
 app.use(cors({
-  origin: true, // Allow request origins
-  credentials: true, // Enable cookie exchanges
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || origin?.startsWith('chrome-extension://') || origin?.startsWith('extension://')) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
 }));
 
 // Parses incoming JSON request payloads

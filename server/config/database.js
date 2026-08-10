@@ -5,12 +5,7 @@ import mongoose from 'mongoose';
  * Server starts offline-first if MONGODB_URI is not declared in environment variables.
  */
 export const connectDatabase = async () => {
-  const uri = process.env.MONGODB_URI;
-
-  if (!uri) {
-    console.warn("Database connection warning: MONGODB_URI is missing or undefined in .env. Starting server in offline database mode.");
-    return;
-  }
+  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/focusflow';
 
   try {
     const conn = await mongoose.connect(uri);
