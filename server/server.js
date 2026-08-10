@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
+import mongoose from 'mongoose';
 
 // Load config configurations from environment file
 dotenv.config();
@@ -60,6 +61,19 @@ app.use(express.urlencoded({ extended: true }));
 // Parses Cookie headers
 app.use(cookieParser());
 
+// Database readiness middleware
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/') && req.path !== '/api/health') {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection is initializing. Please try again in a moment.'
+      });
+    }
+  }
+  next();
+});
+
 // Mount router endpoints
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
@@ -82,9 +96,12 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-// Initialize database connection safely
-connectDatabase();
+// Initialize database connection safely before listening
+const startServer = async () => {
+  await connectDatabase();
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`FocusFlow Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  });
+};
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`FocusFlow Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-});
+startServer();
