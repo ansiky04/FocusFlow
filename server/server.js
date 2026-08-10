@@ -85,6 +85,6 @@ const PORT = process.env.PORT || 5000;
 // Initialize database connection safely
 connectDatabase();
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`FocusFlow Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
