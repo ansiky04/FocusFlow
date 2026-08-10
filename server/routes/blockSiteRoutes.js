@@ -3,7 +3,8 @@ import {
   getBlockSites,
   createBlockSite,
   updateBlockSite,
-  deleteBlockSite
+  deleteBlockSite,
+  syncBlockSites
 } from '../controllers/blockSiteController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -16,8 +17,11 @@ router.route('/')
   .get(getBlockSites)
   .post(createBlockSite);
 
+router.post('/sync', syncBlockSites);
+
 router.route('/:id')
   .put(updateBlockSite)
   .delete(deleteBlockSite);
 
 export default router;
+

@@ -39,6 +39,14 @@ const taskSchema = new mongoose.Schema({
   },
   completedAt: {
     type: Date,
+  },
+  relatedHabitId: {
+    type: String,
+    trim: true,
+  },
+  relatedHabitTitle: {
+    type: String,
+    trim: true,
   }
 }, {
   timestamps: true

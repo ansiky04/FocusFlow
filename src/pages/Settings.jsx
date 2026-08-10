@@ -3,7 +3,6 @@ import {
   User, 
   Target, 
   Clock, 
-  Music, 
   Moon, 
   Palette, 
   Bell, 
@@ -13,7 +12,6 @@ import {
 import ProfileSettings from '../components/settings/ProfileSettings';
 import GoalSettings from '../components/settings/GoalSettings';
 import TimerSettings from '../components/settings/TimerSettings';
-import SoundSettings from '../components/settings/SoundSettings';
 import ThemeSettings from '../components/settings/ThemeSettings';
 import AppearanceSettings from '../components/settings/AppearanceSettings';
 import NotificationSettings from '../components/settings/NotificationSettings';
@@ -23,7 +21,6 @@ const SETTINGS_SECTIONS = [
   { id: 'profile', name: 'Profile Settings', icon: User, component: ProfileSettings },
   { id: 'goals', name: 'Study Goals', icon: Target, component: GoalSettings },
   { id: 'timer', name: 'Timer & Durations', icon: Clock, component: TimerSettings },
-  { id: 'sounds', name: 'Ambient Sounds', icon: Music, component: SoundSettings },
   { id: 'theme', name: 'Theme Mode', icon: Moon, component: ThemeSettings },
   { id: 'appearance', name: 'Appearance Preferences', icon: Palette, component: AppearanceSettings },
   { id: 'notifications', name: 'Notifications Alert', icon: Bell, component: NotificationSettings },
@@ -36,18 +33,18 @@ export default function Settings() {
   const ActiveComponent = SETTINGS_SECTIONS.find(tab => tab.id === activeTab)?.component || ProfileSettings;
 
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-10 transition-colors duration-300">
+    <div className="flex-1 overflow-y-auto px-3.5 py-4 sm:px-6 sm:py-6 md:px-8 md:py-10 transition-colors duration-300">
       
       {/* Header */}
       <div className="max-w-6xl mb-8 animate-fade-in">
-        <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white mb-4">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900 dark:text-white mb-4">
           App{' '}
           <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
             Settings
           </span>
         </h1>
         <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
-          Customize FocusFlow variables, sound loops, goals, layout themes, and backup profiles locally.
+          Customize FocusFlow variables, study goals, layout themes, and backup profiles locally.
         </p>
       </div>
 

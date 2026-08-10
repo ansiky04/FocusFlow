@@ -1,4 +1,5 @@
 import StudyPlan from '../models/StudyPlan.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /**
  * Generate a new AI Study Plan schedule.
@@ -21,14 +22,14 @@ export const generateStudyPlan = async (req, res, next) => {
     const diffTime = targetDate.getTime() - today.getTime();
     const totalDays = Math.max(1, Math.min(30, Math.ceil(diffTime / (1000 * 60 * 60 * 24))));
 
-    const parsedSubjects = Array.isArray(subjects) 
-      ? subjects 
+    const parsedSubjects = Array.isArray(subjects)
+      ? subjects
       : subjects.split(',').map(s => s.trim()).filter(Boolean);
 
-    // Mock fallback study plan if OpenRouter key is missing
-    if (!process.env.OPENROUTER_API_KEY) {
-      console.warn("[StudyPlanner] OpenRouter API Key missing. Generating rich fallback study schedule...");
-      
+    // Mock fallback study plan if Gemini key is missing
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn("[StudyPlanner] Gemini API Key missing. Generating rich fallback study schedule...");
+
       const mockDays = [];
       for (let i = 1; i <= totalDays; i++) {
         const subject = parsedSubjects[(i - 1) % parsedSubjects.length] || 'General Studies';
@@ -86,7 +87,7 @@ export const generateStudyPlan = async (req, res, next) => {
       });
     }
 
-    // 2. Query OpenRouter
+    // 2. Query Gemini API
     const systemPrompt = `You are FocusFlow Study Planner AI, an expert scheduler.
     Generate a day-by-day study schedule starting from Day 1 up to Day ${totalDays} (which is the exam day window).
     Structure topics based on the subjects: [${parsedSubjects.join(', ')}], and difficulty level: ${difficultyLevel}.
@@ -113,49 +114,20 @@ export const generateStudyPlan = async (req, res, next) => {
     Revision Days: ${revisionDays}
     Break Days: ${breakDays}`;
 
-    let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://github.com/FocusFlow',
-        'X-Title': 'FocusFlow Study Planner'
-      },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ]
-      })
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      systemInstruction: systemPrompt,
     });
 
-    if (!response.ok) {
-      console.warn("[StudyPlanner] Primary Llama model failed. Calling Gemma fallback...");
-      response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://github.com/FocusFlow',
-          'X-Title': 'FocusFlow Study Planner'
-        },
-        body: JSON.stringify({
-          model: 'google/gemma-4-26b-a4b-it:free',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage }
-          ]
-        })
-      });
+    let aiText = "{}";
+    try {
+      const result = await model.generateContent(userMessage);
+      aiText = result.response.text();
+    } catch (apiError) {
+      console.error("[StudyPlanner] Gemini API failed.", apiError);
+      throw new Error(`Gemini API returned an error: ${apiError.message}`);
     }
-
-    if (!response.ok) {
-      throw new Error(`OpenRouter returned status ${response.status}`);
-    }
-
-    const resData = await response.json();
-    const aiText = resData.choices?.[0]?.message?.content || '{}';
 
     // Parse JSON
     let cleanText = aiText.trim();

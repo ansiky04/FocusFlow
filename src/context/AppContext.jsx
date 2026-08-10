@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 const AppContext = createContext(undefined);
 
@@ -43,10 +43,58 @@ export function AppProvider({ children }) {
     isEnabled: false,
   });
 
+  // Persistent Local Timer State Initializer
+  const timerEndTimeRef = useRef(null);
+
+  const getInitialTimerState = () => {
+    try {
+      const saved = localStorage.getItem('focusflow_active_timer_state');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.status === 'active' && parsed.endTime) {
+          const remaining = Math.ceil((parsed.endTime - Date.now()) / 1000);
+          if (remaining > 0) {
+            timerEndTimeRef.current = parsed.endTime;
+            return {
+              mode: parsed.mode || 'focus',
+              isActive: true,
+              timeLeft: remaining,
+              status: 'active'
+            };
+          } else {
+            return {
+              mode: parsed.mode || 'focus',
+              isActive: false,
+              timeLeft: 0,
+              status: 'completed'
+            };
+          }
+        } else if (parsed && parsed.status === 'paused') {
+          return {
+            mode: parsed.mode || 'focus',
+            isActive: false,
+            timeLeft: typeof parsed.remainingSeconds === 'number' ? parsed.remainingSeconds : (parsed.duration || 1500),
+            status: 'paused'
+          };
+        } else if (parsed && parsed.mode) {
+          return {
+            mode: parsed.mode,
+            isActive: false,
+            timeLeft: parsed.duration || 1500,
+            status: 'idle'
+          };
+        }
+      }
+    } catch (e) {}
+    return null;
+  };
+
+  const initialTimerState = getInitialTimerState();
+
   // Global Timer and Active Session States
-  const [mode, setMode] = useState('focus'); // 'focus' | 'short' | 'long'
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [isActive, setIsActive] = useState(false);
+  const [mode, setMode] = useState(initialTimerState?.mode || 'focus'); // 'focus' | 'short' | 'long'
+  const [timeLeft, setTimeLeft] = useState(initialTimerState ? initialTimerState.timeLeft : (25 * 60));
+  const [isActive, setIsActive] = useState(initialTimerState ? initialTimerState.isActive : false);
   const [completedSessions, setCompletedSessions] = useState(0);
   const [quote, setQuote] = useState("Focus is a muscle, and you are building it right now.");
   const [showQuoteToast, setShowQuoteToast] = useState(false);
@@ -59,10 +107,20 @@ export function AppProvider({ children }) {
     localStorage.setItem('focusflow_is_custom_active', isCustomActive ? 'true' : 'false');
   }, [isCustomActive]);
 
-  const durations = {
+  const durations = useMemo(() => ({
     focus: (userSettings?.focusDuration || 25) * 60,
     short: (userSettings?.shortBreak || 5) * 60,
     long: (userSettings?.longBreak || 15) * 60,
+  }), [userSettings]);
+
+  const persistTimerState = (stateObj) => {
+    try {
+      if (!stateObj) {
+        localStorage.removeItem('focusflow_active_timer_state');
+      } else {
+        localStorage.setItem('focusflow_active_timer_state', JSON.stringify(stateObj));
+      }
+    } catch {}
   };
 
   const [themePreference, setThemePreferenceState] = useState(() => {
@@ -525,6 +583,47 @@ export function AppProvider({ children }) {
       triggerNotification("Break Completed", "Break is over. Ready to return to flow state?", "Break");
     }
 
+    if (mode === 'focus') {
+      const userKey = user?._id || user?.id || 'guest_student';
+      const sessionKey = `focusflow_shield_active_session_${userKey}`;
+      const historyKey = `focusflow_shield_sessions_history_${userKey}`;
+      const sitesKey = `focusflow_shield_sites_${userKey}`;
+
+      let activeBlocked = ['youtube.com', 'instagram.com', 'facebook.com', 'x.com', 'reddit.com', 'discord.com'];
+      try {
+        const rawSites = localStorage.getItem(sitesKey);
+        if (rawSites) {
+          const parsed = JSON.parse(rawSites);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const enabled = parsed.filter(s => s && s.enabled).map(s => s.website);
+            if (enabled.length > 0) activeBlocked = enabled;
+          }
+        }
+      } catch {}
+
+      const durationMins = Math.max(1, Math.round((prevActiveSession?.duration || userSettings?.focusDuration * 60 || 1500) / 60));
+      const now = new Date();
+      const historyItem = {
+        id: `hist_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+        date: now.toISOString(),
+        dateFormatted: `Today at ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+        sessionName: prevActiveSession?.name || 'Focus Session',
+        durationMinutes: durationMins,
+        blockedWebsitesCount: activeBlocked.length,
+        blockedCategories: ['All'],
+        allowedWebsites: [],
+        status: 'Completed'
+      };
+
+      try {
+        const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+        localStorage.setItem(historyKey, JSON.stringify([historyItem, ...existingHistory]));
+      } catch {}
+
+      localStorage.removeItem(sessionKey);
+      window.postMessage({ type: 'FOCUSFLOW_SESSION_CHANGED' }, '*');
+    }
+
     const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
     setQuote(randomQuote);
     setShowQuoteToast(true);
@@ -576,12 +675,32 @@ export function AppProvider({ children }) {
 
   const timerRef = useRef(null);
 
-  // Sync timer duration if mode changes
-  useEffect(() => {
-    if (!isActive && !activeSession) {
-      setTimeLeft(durations[mode]);
+  const changeMode = (newMode) => {
+    setMode(newMode);
+    if (!isActive) {
+      const newDur = (userSettings?.[newMode === 'focus' ? 'focusDuration' : newMode === 'short' ? 'shortBreak' : 'longBreak'] || (newMode === 'focus' ? 25 : newMode === 'short' ? 5 : 15)) * 60;
+      setTimeLeft(newDur);
+      timerEndTimeRef.current = null;
+      persistTimerState({ mode: newMode, status: 'idle', remainingSeconds: newDur, duration: newDur });
     }
-  }, [mode, userSettings, activeSession]);
+  };
+
+  // Sync timer duration if durations change and timer is NOT active
+  useEffect(() => {
+    if (!isActive && !timerEndTimeRef.current) {
+      const saved = localStorage.getItem('focusflow_active_timer_state');
+      let isPaused = false;
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed?.status === 'paused') isPaused = true;
+        } catch {}
+      }
+      if (!isPaused) {
+        setTimeLeft(durations[mode]);
+      }
+    }
+  }, [durations, mode, isActive]);
 
   // Sync userSettings to localStorage whenever it changes
   useEffect(() => {
@@ -598,7 +717,6 @@ export function AppProvider({ children }) {
       };
       
       if (activeSession.sessionType !== modeToSessionType[mode]) {
-        // Cancel mismatched session on backend
         if (token) {
           fetch('http://localhost:5000/api/sessions/active', {
             method: 'PUT',
@@ -610,25 +728,37 @@ export function AppProvider({ children }) {
           }).catch(err => console.error('Failed to cancel mismatched active session:', err));
         }
         
-        // Clear active session state on client
         setActiveSession(null);
         setIsActive(false);
+        timerEndTimeRef.current = null;
       }
     }
   }, [mode, activeSession, token]);
 
-  // Tick countdown handler
+  // Tick countdown handler using absolute endTime
   useEffect(() => {
     if (isActive) {
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
+        if (timerEndTimeRef.current) {
+          const remaining = Math.max(0, Math.ceil((timerEndTimeRef.current - Date.now()) / 1000));
+          setTimeLeft(remaining);
+          if (remaining <= 0) {
             clearInterval(timerRef.current);
+            timerEndTimeRef.current = null;
+            setIsActive(false);
             handleTimerExpiry();
-            return 0;
           }
-          return prev - 1;
-        });
+        } else {
+          setTimeLeft((prev) => {
+            if (prev <= 1) {
+              clearInterval(timerRef.current);
+              setIsActive(false);
+              handleTimerExpiry();
+              return 0;
+            }
+            return prev - 1;
+          });
+        }
       }, 1000);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -637,7 +767,7 @@ export function AppProvider({ children }) {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isActive, mode, activeSession]);
+  }, [isActive, mode]);
 
   // Load completed focus sessions count today from analytics
   useEffect(() => {
@@ -677,7 +807,6 @@ export function AppProvider({ children }) {
             setShowQuoteToast(true);
             setCompletedSessions((prev) => prev + 1);
 
-            // Focus Shield deactivation for Custom Focus Timer if completed away
             const wasCustom = localStorage.getItem('focusflow_is_custom_active') === 'true' || 
                               (session.sessionType === 'Focus' && ![10 * 60, 25 * 60, 45 * 60, 60 * 60].includes(session.duration));
             if (wasCustom) {
@@ -691,24 +820,29 @@ export function AppProvider({ children }) {
             } else {
               setMode('short');
             }
+            timerEndTimeRef.current = null;
+            persistTimerState({ mode: 'short', status: 'idle', remainingSeconds: durations.short, duration: durations.short });
             setTimeout(() => setShowQuoteToast(false), 8000);
             return;
           }
 
           setActiveSession(session);
-          
           const recoveredMode = session.sessionType === 'Focus' ? 'focus' : session.sessionType === 'Short Break' ? 'short' : 'long';
           setMode(recoveredMode);
           
           if (session.status === 'paused') {
             setTimeLeft(session.remainingTime);
             setIsActive(false);
+            timerEndTimeRef.current = null;
+            persistTimerState({ mode: recoveredMode, status: 'paused', remainingSeconds: session.remainingTime, duration: session.duration || durations[recoveredMode] });
           } else if (session.status === 'active') {
-            const end = new Date(session.endTime);
-            const remaining = Math.max(0, Math.round((end - new Date()) / 1000));
+            const endMs = session.endTime ? (typeof session.endTime === 'number' ? session.endTime : Date.parse(session.endTime)) : (Date.now() + session.remainingTime * 1000);
+            const remaining = Math.max(0, Math.ceil((endMs - Date.now()) / 1000));
             if (remaining > 0) {
+              timerEndTimeRef.current = endMs;
               setTimeLeft(remaining);
               setIsActive(true);
+              persistTimerState({ mode: recoveredMode, status: 'active', endTime: endMs, duration: session.duration || durations[recoveredMode], remainingSeconds: remaining });
             } else {
               playAlertSound();
               setQuote("Focus session completed! You built focus today.");
@@ -716,8 +850,9 @@ export function AppProvider({ children }) {
               setCompletedSessions((prev) => prev + 1);
               setIsActive(false);
               setActiveSession(null);
+              timerEndTimeRef.current = null;
+              persistTimerState({ mode: recoveredMode, status: 'completed', remainingSeconds: 0, duration: session.duration || durations[recoveredMode] });
 
-              // Focus Shield deactivation for Custom Focus Timer
               const wasCustom = localStorage.getItem('focusflow_is_custom_active') === 'true' || 
                                 (session.sessionType === 'Focus' && ![10 * 60, 25 * 60, 45 * 60, 60 * 60].includes(session.duration));
               if (wasCustom) {
@@ -737,21 +872,115 @@ export function AppProvider({ children }) {
     retrieveActiveSession();
   }, [token, user]);
 
-  const handleStartPause = async () => {
-    if (!token) {
-      setIsActive(!isActive);
-      return;
-    }
+  // Synchronize Focus Timer active session with Chrome Extension and localStorage
+  useEffect(() => {
+    const userKey = user?._id || user?.id || 'guest_student';
+    const sessionKey = `focusflow_shield_active_session_${userKey}`;
+    const sitesKey = `focusflow_shield_sites_${userKey}`;
 
+    let activeBlockedList = ['youtube.com', 'instagram.com', 'facebook.com', 'x.com', 'reddit.com', 'discord.com'];
+    try {
+      const rawSites = localStorage.getItem(sitesKey);
+      if (rawSites) {
+        const parsed = JSON.parse(rawSites);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const enabled = parsed.filter(s => s && s.enabled).map(s => s.website);
+          if (enabled.length > 0) activeBlockedList = enabled;
+        }
+      } else {
+        const defaultSites = activeBlockedList.map((w, idx) => ({
+          _id: `site_${idx}`,
+          website: w,
+          category: 'General',
+          enabled: true
+        }));
+        localStorage.setItem(sitesKey, JSON.stringify(defaultSites));
+        window.postMessage({ type: 'FOCUSFLOW_BLOCKLIST_UPDATED' }, '*');
+      }
+    } catch {}
+
+    const isSessionCurrentlyActive = Boolean(
+      isActive &&
+      mode === 'focus' &&
+      timeLeft > 0
+    );
+
+    if (isSessionCurrentlyActive) {
+      const now = Date.now();
+      const endTimeMs = timerEndTimeRef.current || (activeSession?.endTime
+        ? (typeof activeSession.endTime === 'number' ? activeSession.endTime : (Number(activeSession.endTime) || Date.parse(activeSession.endTime)))
+        : (now + timeLeft * 1000));
+      
+      const startTimeMs = activeSession?.startTime
+        ? (typeof activeSession.startTime === 'number' ? activeSession.startTime : (Number(activeSession.startTime) || Date.parse(activeSession.startTime)))
+        : (endTimeMs - timeLeft * 1000);
+
+      const durMins = Math.max(1, Math.round(timeLeft / 60) || Math.round((activeSession?.duration || 1500) / 60) || 25);
+
+      const sessionPayload = {
+        id: activeSession?._id || `session_${now}`,
+        name: activeSession?.taskName || activeSession?.name || 'Focus Session',
+        sessionType: 'Study',
+        status: 'active',
+        durationMinutes: durMins,
+        startTime: startTimeMs,
+        endTime: endTimeMs,
+        blockedWebsites: activeBlockedList
+      };
+
+      try {
+        localStorage.setItem(sessionKey, JSON.stringify(sessionPayload));
+        window.postMessage({ type: 'FOCUSFLOW_SESSION_CHANGED' }, '*');
+      } catch {}
+    } else {
+      if (!isActive || mode !== 'focus') {
+        try {
+          const raw = localStorage.getItem(sessionKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && (parsed.id?.startsWith('session_') || parsed.id?.startsWith('timer_') || parsed.name === 'Focus Session' || parsed.sessionType === 'Study' || parsed.sessionType === 'Focus')) {
+              localStorage.removeItem(sessionKey);
+              window.postMessage({ type: 'FOCUSFLOW_SESSION_CHANGED' }, '*');
+            }
+          }
+        } catch {}
+      }
+    }
+  }, [isActive, mode, timeLeft, activeSession, user, focusShield]);
+
+  const handleStartPause = async () => {
     const nextIsActive = !isActive;
     setIsActive(nextIsActive);
 
+    let newEndTime = null;
+
     if (nextIsActive) {
+      const currentSecs = timeLeft > 0 ? timeLeft : (durations[mode] || 1500);
+      newEndTime = Date.now() + currentSecs * 1000;
+      timerEndTimeRef.current = newEndTime;
+
+      persistTimerState({
+        mode,
+        status: 'active',
+        startTime: Date.now() - (durations[mode] - currentSecs) * 1000,
+        endTime: newEndTime,
+        duration: durations[mode],
+        remainingSeconds: currentSecs
+      });
+
       if (mode === 'focus') {
         triggerNotification("Focus Session Started", "Time to concentrate and study.", "Focus");
       } else {
         triggerNotification("Break Started", "Relax and rest.", "Break");
       }
+    } else {
+      timerEndTimeRef.current = null;
+      persistTimerState({
+        mode,
+        status: 'paused',
+        remainingSeconds: timeLeft,
+        duration: durations[mode]
+      });
     }
 
     // Focus Shield activation for Custom Focus Timer
@@ -763,65 +992,79 @@ export function AppProvider({ children }) {
       }
     }
 
-    try {
-      if (nextIsActive) {
-        if (activeSession) {
-          const response = await fetch('http://localhost:5000/api/sessions/active', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ status: 'active', remainingTime: timeLeft })
-          });
-          const data = await response.json();
-          if (data.success && data.session) {
-            setActiveSession(data.session);
+    if (token) {
+      try {
+        if (nextIsActive) {
+          if (activeSession) {
+            const response = await fetch('http://localhost:5000/api/sessions/active', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ status: 'active', remainingTime: timeLeft, endTime: new Date(newEndTime).toISOString() })
+            });
+            const data = await response.json();
+            if (data.success && data.session) {
+              setActiveSession(data.session);
+            }
+          } else {
+            const sessionTypeMap = mode === 'focus' ? 'Focus' : mode === 'short' ? 'Short Break' : 'Long Break';
+            const response = await fetch('http://localhost:5000/api/sessions/start', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ duration: timeLeft, sessionType: sessionTypeMap, endTime: new Date(newEndTime).toISOString() })
+            });
+            const data = await response.json();
+            if (data.success && data.session) {
+              setActiveSession(data.session);
+            }
           }
         } else {
-          const sessionTypeMap = mode === 'focus' ? 'Focus' : mode === 'short' ? 'Short Break' : 'Long Break';
-          const response = await fetch('http://localhost:5000/api/sessions/start', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ duration: timeLeft, sessionType: sessionTypeMap })
-          });
-          const data = await response.json();
-          if (data.success && data.session) {
-            setActiveSession(data.session);
+          if (activeSession) {
+            const response = await fetch('http://localhost:5000/api/sessions/active', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ status: 'paused', remainingTime: timeLeft })
+            });
+            const data = await response.json();
+            if (data.success && data.session) {
+              setActiveSession(data.session);
+            }
           }
         }
-      } else {
-        if (activeSession) {
-          const response = await fetch('http://localhost:5000/api/sessions/active', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ status: 'paused', remainingTime: timeLeft })
-          });
-          const data = await response.json();
-          if (data.success && data.session) {
-            setActiveSession(data.session);
-          }
-        }
+      } catch (err) {
+        console.error('Failed to sync start/pause state with server:', err.message);
       }
-    } catch (err) {
-      console.error('Failed to sync start/pause state with server:', err.message);
     }
   };
 
   const handleReset = async () => {
     setIsActive(false);
-    setTimeLeft(durations[mode]);
-    
+    timerEndTimeRef.current = null;
+    const defaultDuration = durations[mode] || 1500;
+    setTimeLeft(defaultDuration);
+
+    persistTimerState({
+      mode,
+      status: 'idle',
+      remainingSeconds: defaultDuration,
+      duration: defaultDuration
+    });
+
     const prevActiveSession = activeSession;
     setActiveSession(null);
 
-    // Focus Shield deactivation for Custom Focus Timer
+    const userKey = user?._id || user?.id || 'guest_student';
+    localStorage.removeItem(`focusflow_shield_active_session_${userKey}`);
+    window.postMessage({ type: 'FOCUSFLOW_SESSION_CHANGED' }, '*');
+
     if (isCustomActive) {
       setFocusShield(prev => ({ ...prev, isEnabled: false }));
       setIsCustomActive(false);
@@ -845,10 +1088,26 @@ export function AppProvider({ children }) {
 
   const handleSkip = async () => {
     setIsActive(false);
+    timerEndTimeRef.current = null;
     const prevActiveSession = activeSession;
     setActiveSession(null);
 
-    // Focus Shield deactivation for Custom Focus Timer
+    const nextMode = mode === 'focus' ? 'short' : 'focus';
+    setMode(nextMode);
+    const nextDuration = durations[nextMode] || (nextMode === 'focus' ? 25 * 60 : 5 * 60);
+    setTimeLeft(nextDuration);
+
+    persistTimerState({
+      mode: nextMode,
+      status: 'idle',
+      remainingSeconds: nextDuration,
+      duration: nextDuration
+    });
+
+    const userKey = user?._id || user?.id || 'guest_student';
+    localStorage.removeItem(`focusflow_shield_active_session_${userKey}`);
+    window.postMessage({ type: 'FOCUSFLOW_SESSION_CHANGED' }, '*');
+
     if (isCustomActive) {
       setFocusShield(prev => ({ ...prev, isEnabled: false }));
       setIsCustomActive(false);
@@ -868,12 +1127,6 @@ export function AppProvider({ children }) {
         console.error('Failed to cancel active session on skip:', err.message);
       }
     }
-
-    if (mode === 'focus') {
-      setMode('short');
-    } else {
-      setMode('focus');
-    }
   };
 
   const login = (newToken, newUser) => {
@@ -889,6 +1142,11 @@ export function AppProvider({ children }) {
     setUser(null);
     window.postMessage({ type: 'FOCUSFLOW_TOKEN_CHANGED', token: null }, '*');
   };
+
+  // Mobile Navigation Menu State
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev);
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
     <AppContext.Provider value={{ 
@@ -908,7 +1166,7 @@ export function AppProvider({ children }) {
       focusShield,
       setFocusShield,
       mode,
-      setMode,
+      setMode: changeMode,
       timeLeft,
       setTimeLeft,
       isActive,
@@ -938,7 +1196,11 @@ export function AppProvider({ children }) {
       clearAllNotificationItems,
       requestNotificationPermission,
       notificationPermission,
-      fetchCalendarEvents
+      fetchCalendarEvents,
+      isMobileMenuOpen,
+      setIsMobileMenuOpen,
+      toggleMobileMenu,
+      closeMobileMenu
     }}>
       {children}
     </AppContext.Provider>

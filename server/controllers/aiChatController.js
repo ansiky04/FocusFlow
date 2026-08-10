@@ -1,4 +1,5 @@
 import AIChat from '../models/AIChat.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /**
  * Fetch all chat conversations mapped to the authenticated user.
@@ -68,9 +69,9 @@ export const sendMessage = async (req, res, next) => {
       chat.title = titleSnippet.length > 30 ? `${titleSnippet.substring(0, 30)}...` : titleSnippet;
     }
 
-    // If OpenRouter API key is missing, respond with a config warning instead of failing
-    if (!process.env.OPENROUTER_API_KEY) {
-      const warningText = "OpenRouter API Key is missing. Please configure OPENROUTER_API_KEY in the server's `.env` file to chat!";
+    // If Gemini API key is missing, respond with a config warning instead of failing
+    if (!process.env.GEMINI_API_KEY) {
+      const warningText = "Gemini API Key is missing. Please configure GEMINI_API_KEY in the server's `.env` file to chat!";
       chat.messages.push({
         role: 'model',
         content: warningText,
@@ -83,64 +84,40 @@ export const sendMessage = async (req, res, next) => {
       });
     }
 
-    // Prepare context history parameters mapping for OpenRouter (OpenAI-compatible schema)
-    const contextMessages = chat.messages.slice(-15);
-    const apiMessages = [
-      {
-        role: 'system',
-        content: "You are FocusFlow AI, a helpful, friendly, and professional assistant. Your primary priority is to assist users with study, programming, debugging, productivity, notes, and revision. However, you should also act as a general-purpose assistant, answering questions about general knowledge, technology, history, science, mathematics, geography, current affairs, biographies, and other educational queries. Only refuse requests if they are illegal, dangerous, or harmful. Keep all responses friendly, professional, concise, and structured. Format code blocks using markdown with language labels."
-      },
-      ...contextMessages.map(msg => ({
-        role: msg.role === 'model' ? 'assistant' : 'user',
-        content: msg.content
-      }))
-    ];
-
-    // Attempt the requested Llama 3.1 8B Instruct Free model first
-    let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://github.com/FocusFlow',
-        'X-Title': 'FocusFlow'
-      },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
-        messages: apiMessages
-      })
+    // Initialize the Google Generative AI with the API key
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      systemInstruction: "You are FocusFlow AI, a helpful, friendly, and professional assistant. Your primary priority is to assist users with study, programming, debugging, productivity, notes, and revision. However, you should also act as a general-purpose assistant, answering questions about general knowledge, technology, history, science, mathematics, geography, current affairs, biographies, and other educational queries. Only refuse requests if they are illegal, dangerous, or harmful. Keep all responses friendly, professional, concise, and structured. Format code blocks using markdown with language labels.",
     });
 
-    // If meta-llama/llama-3.1-8b-instruct:free fails (e.g. 404 due to retirement), fall back to google/gemma-4-26b-a4b-it:free
-    if (!response.ok) {
-      console.warn("Llama 3.1 Free model is unavailable or returned an error. Falling back to google/gemma-4-26b-a4b-it:free...");
-      response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://github.com/FocusFlow',
-          'X-Title': 'FocusFlow'
-        },
-        body: JSON.stringify({
-          model: 'google/gemma-4-26b-a4b-it:free',
-          messages: apiMessages
-        })
-      });
-    }
+    // Prepare context history parameters mapping for Gemini
+    const contextMessages = chat.messages.slice(-15);
+    const apiMessages = contextMessages.map(msg => ({
+      role: msg.role === 'model' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("OpenRouter API error details:", response.status, errorData);
-      return res.status(response.status).json({
+    // Call the Gemini API using the conversation history
+    const geminiChat = model.startChat({
+      history: apiMessages.slice(0, -1), // Everything except the last message
+    });
+
+    // The last message is the new user input
+    const lastMessage = apiMessages[apiMessages.length - 1].parts[0].text;
+
+    let aiText = "";
+    try {
+      const result = await geminiChat.sendMessage(lastMessage);
+      aiText = result.response.text() || "I apologize, I was unable to generate a response at this time.";
+    } catch (apiError) {
+      console.error("Gemini API error details:", apiError);
+      return res.status(500).json({
         success: false,
-        message: `OpenRouter API error: ${response.statusText || 'Response generation failed'}`,
-        details: errorData
+        message: `Gemini API error: ${apiError.message || 'Response generation failed'}`,
+        details: apiError
       });
     }
-
-    const responseData = await response.json();
-    const aiText = responseData.choices?.[0]?.message?.content || "I apologize, I was unable to generate a response at this time.";
 
     // Append AI response (mapping assistant back to model role for AIChat database validation schema)
     chat.messages.push({

@@ -24,7 +24,7 @@ export const getTasks = async (req, res, next) => {
  * @access Private
  */
 export const createTask = async (req, res, next) => {
-  const { title, description, priority, status, completed, dueDate } = req.body;
+  const { title, description, priority, status, completed, dueDate, relatedHabitId, relatedHabitTitle } = req.body;
 
   try {
     // 1. Validation check
@@ -56,6 +56,8 @@ export const createTask = async (req, res, next) => {
       status: statusFormatted,
       dueDate: dueDate || undefined,
       completedAt: statusFormatted === 'Completed' ? new Date() : undefined,
+      relatedHabitId: relatedHabitId || undefined,
+      relatedHabitTitle: relatedHabitTitle || undefined
     });
 
     res.status(201).json({
@@ -73,7 +75,7 @@ export const createTask = async (req, res, next) => {
  * @access Private
  */
 export const updateTask = async (req, res, next) => {
-  const { title, description, priority, status, completed, dueDate } = req.body;
+  const { title, description, priority, status, completed, dueDate, relatedHabitId, relatedHabitTitle } = req.body;
 
   try {
     const task = await Task.findOne({ _id: req.params.id, userId: req.user._id });
@@ -104,6 +106,14 @@ export const updateTask = async (req, res, next) => {
     // Update dueDate
     if (dueDate !== undefined) {
       task.dueDate = dueDate || undefined;
+    }
+
+    // Update related habit link
+    if (relatedHabitId !== undefined) {
+      task.relatedHabitId = relatedHabitId || undefined;
+    }
+    if (relatedHabitTitle !== undefined) {
+      task.relatedHabitTitle = relatedHabitTitle || undefined;
     }
 
     const updatedTask = await task.save();

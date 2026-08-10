@@ -152,3 +152,40 @@ export const deleteBlockSite = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Bulk sync blocked websites list from extension or web client.
+ * @route POST /api/block-sites/sync
+ * @access Private
+ */
+export const syncBlockSites = async (req, res, next) => {
+  const { sites } = req.body;
+
+  try {
+    if (Array.isArray(sites)) {
+      for (const item of sites) {
+        if (!item.website) continue;
+        let domain = item.website.trim().toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '');
+        await BlockSite.findOneAndUpdate(
+          { userId: req.user._id, website: domain },
+          {
+            category: item.category?.trim() || 'General',
+            enabled: item.enabled !== undefined ? item.enabled : true
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      }
+    }
+
+    const currentSites = await BlockSite.find({ userId: req.user._id }).sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      count: currentSites.length,
+      sites: currentSites
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+

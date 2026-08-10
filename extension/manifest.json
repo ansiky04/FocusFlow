@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "FocusFlow Focus Shield",
-  "version": "1.0.0",
-  "description": "Block distracting websites automatically during active FocusFlow focus sessions.",
+  "version": "2.0.0",
+  "description": "Smart website blocker supporting exact, wildcard & subdomain rules with live study session sync across Chromium browsers.",
   "permissions": [
     "tabs",
     "webNavigation",
@@ -14,19 +14,23 @@
   ],
   "host_permissions": [
     "http://localhost:5000/*",
+    "http://127.0.0.1:5000/*",
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
       "matches": [
         "http://localhost:5173/*",
-        "http://localhost:5174/*"
+        "http://localhost:5174/*",
+        "http://127.0.0.1:5173/*",
+        "http://127.0.0.1:5174/*"
       ],
       "js": [
-        "content.js"
+        "content/content.js"
       ],
       "run_at": "document_start"
     }
@@ -36,7 +40,8 @@
       "resources": [
         "blocked.html",
         "blocked.css",
-        "blocked.js"
+        "blocked.js",
+        "icons/icon128.png"
       ],
       "matches": [
         "<all_urls>"
@@ -44,7 +49,8 @@
     }
   ],
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "popup/popup.html",
+    "default_title": "FocusFlow Focus Shield",
     "default_icon": {
       "128": "icons/icon128.png"
     }

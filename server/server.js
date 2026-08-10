@@ -24,6 +24,7 @@ import coachRoutes from './routes/coachRoutes.js';
 import studyPlanRoutes from './routes/studyPlanRoutes.js';
 import calendarRoutes from './routes/calendarRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import habitRoutes from './routes/habitRoutes.js';
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use('/api/coach', coachRoutes);
 app.use('/api/study-plans', studyPlanRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/habits', habitRoutes);
 
 // Fallbacks for unmatched routes and runtime errors
 app.use(notFound);

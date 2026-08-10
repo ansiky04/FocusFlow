@@ -1,200 +1,272 @@
 /**
- * FocusFlow Focus Shield Blocked Page Script.
- * Coordinates countdown display updates and intercepts tab queries.
+ * FocusFlow Focus Shield - Blocked Page Interactivity Script
+ * Production-ready countdown timer synchronized with absolute timestamps (startTime, endTime).
+ * Never resets on page refresh; automatically unblocks and redirects when session finishes.
  */
 
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("[FocusShield] Blocked page loaded");
+const MOTIVATIONAL_QUOTES = [
+  { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+  { text: "Focus on being productive instead of busy.", author: "Tim Ferriss" },
+  { text: "Small daily improvements over time lead to stunning results.", author: "Robin Sharma" },
+  { text: "Your future is created by what you do today, not tomorrow.", author: "Robert Kiyosaki" },
+  { text: "Deep work is the superpower of the 21st century.", author: "Cal Newport" },
+  { text: "Success is the sum of small efforts repeated day in and day out.", author: "Robert Collier" },
+  { text: "Discipline is choosing between what you want now and what you want most.", author: "Abraham Lincoln" },
+  { text: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+  { text: "Push yourself, because no one else is going to do it for you.", author: "FocusFlow" },
+  { text: "Great things never come from comfort zones.", author: "Anonymous" }
+];
 
-  // Extract query parameters
+document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
-  const websiteDomain = params.get("website") || "";
-  const originalUrl = params.get("url") || "";
+  const websiteParam = params.get('website') || '';
+  const originalUrl = params.get('url') || '';
 
-  console.log("[FocusShield] Website parameter:", websiteDomain);
-  console.log("[FocusShield] URL parameter:", originalUrl);
+  const domainEl = document.getElementById('blocked-domain');
+  const faviconEl = document.getElementById('blocked-favicon');
+  const countdownEl = document.getElementById('countdown');
+  const sessionTitleEl = document.getElementById('session-title-text');
+  const sessionTypeBadge = document.getElementById('session-type-badge');
+  const quoteTextEl = document.getElementById('quote-text');
+  const quoteAuthorEl = document.getElementById('quote-author');
+  const completedNotice = document.getElementById('completed-notice');
+  const returnSiteBtn = document.getElementById('return-site-btn');
+  const returnBtnLabel = document.getElementById('return-btn-label');
+  const btnLockIcon = document.getElementById('btn-lock-icon');
+  const backAppBtn = document.getElementById('back-app-btn');
+  const closeBtn = document.getElementById('close-btn');
 
-  const domainEl = document.getElementById("blocked-domain");
-  const faviconEl = document.getElementById("blocked-favicon");
-  const countdownEl = document.getElementById("countdown");
-  const backBtn = document.getElementById("back-btn");
-  const closeBtn = document.getElementById("close-btn");
-
-  // Immediately set the fallback website domain text before any storage logic
-  if (websiteDomain) {
-    domainEl.textContent = websiteDomain;
+  // Display randomized motivational quote
+  const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+  if (quoteTextEl && quoteAuthorEl) {
+    quoteTextEl.textContent = randomQuote.text;
+    quoteAuthorEl.textContent = `— ${randomQuote.author}`;
   }
 
-  // Parse the hostname from the url parameter if available
-  let domainToShow = websiteDomain;
+  // Parse clean hostname
+  let domainToShow = websiteParam;
   if (originalUrl) {
     try {
-      const parsedUrl = new URL(originalUrl);
-      domainToShow = parsedUrl.hostname.replace("www.", "");
-      console.log("[FocusShield] Hostname parsed:", domainToShow);
-    } catch (err) {
-      console.warn("[FocusShield] Failed to parse URL hostname:", err);
+      const parsed = new URL(originalUrl.startsWith('http') ? originalUrl : `https://${originalUrl}`);
+      domainToShow = parsed.hostname.replace(/^www\./, '');
+    } catch {
+      // ignore
     }
   }
 
-  // Display the resolved domain
   if (domainToShow) {
     domainEl.textContent = domainToShow;
-  }
-
-  // Load favicon dynamically if domain resolves
-  if (domainToShow) {
     faviconEl.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domainToShow)}&sz=32`;
-    faviconEl.style.display = "block";
+    faviconEl.style.display = 'block';
   }
 
-  let timeLeft = 0;
+  let sessionEndTime = null;
   let timerInterval = null;
+  let hasAutoRedirected = false;
 
-  // Format seconds into MM:SS format
   function formatTime(seconds) {
-    if (seconds <= 0) return "00:00";
+    if (typeof seconds !== 'number' || isNaN(seconds) || seconds <= 0) return '00:00';
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
-  // Update countdown digits display
-  function updateDisplay() {
-    countdownEl.textContent = formatTime(timeLeft);
-  }
+  function redirectBackToOriginalSite() {
+    if (hasAutoRedirected) return;
+    hasAutoRedirected = true;
 
-  // Redirect the user back to the original destination URL
-  function redirectBack() {
     if (originalUrl) {
-      window.location.href = originalUrl;
-    } else {
-      window.close();
+      window.location.replace(originalUrl);
+    } else if (domainToShow) {
+      window.location.replace(`https://${domainToShow}`);
     }
   }
 
-  // Start local countdown ticking
-  function startLocalTimer() {
-    if (timerInterval) return;
+  function handleTimerCompletion(autoRedirect = true) {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
 
-    timerInterval = setInterval(() => {
-      if (timeLeft <= 0) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-        redirectBack();
+    if (countdownEl) {
+      countdownEl.textContent = '00:00';
+      countdownEl.style.color = '#10b981';
+    }
+
+    // Show completion notice
+    if (completedNotice) completedNotice.style.display = 'flex';
+
+    // Enable the Return Button
+    if (returnSiteBtn) {
+      returnSiteBtn.disabled = false;
+      returnSiteBtn.className = 'btn-return-unlocked';
+      if (btnLockIcon) btnLockIcon.textContent = '➜';
+      if (returnBtnLabel) {
+        returnBtnLabel.textContent = domainToShow ? `Return to ${domainToShow}` : 'Continue to Website';
       }
+    }
 
-      // Background updates the timer.
-      // We don't decrement it here.
-    }, 1000);
-  }
-
-  // Log the blocked navigation attempt to MongoDB
-  async function logBlockedAttempt(domain) {
+    // Inform background worker that session is ended
     try {
-      const cache = await chrome.storage.local.get(["token"]);
-      if (cache && cache.token && domain) {
-        await fetch("http://localhost:5000/api/focus-attempt", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${cache.token}`
-          },
-          body: JSON.stringify({ website: domain })
-        });
-        console.log(`[FocusShield] Blocked attempt logged for: ${domain}`);
-      }
-    } catch (err) {
-      console.error("[FocusShield] Attempt log failed:", err);
+      chrome.runtime.sendMessage({ type: 'END_STUDY_SESSION' }, () => {
+        if (chrome.runtime.lastError) { /* ignore */ }
+      });
+    } catch {
+      // ignore context invalidation
+    }
+
+    // Auto redirect user back to the original website
+    if (autoRedirect) {
+      setTimeout(redirectBackToOriginalSite, 800);
     }
   }
 
-  // Read remainingTime and shieldActive from chrome.storage.local
-  chrome.storage.local.get(["remainingTime", "shieldActive"], (result) => {
-    const remainingTime = result ? result.remainingTime : 0;
-    const shieldActive = result ? result.shieldActive : false;
-
-    console.log("[FocusShield] Remaining Time loaded:", remainingTime);
-    console.log("[FocusShield] Shield Active loaded:", shieldActive);
-
-    // Display the timer immediately after reading storage
-    timeLeft = remainingTime || 0;
-    updateDisplay();
-
-    if (shieldActive) {
-      startLocalTimer();
-      if (domainToShow) {
-        logBlockedAttempt(domainToShow);
-      }
-    } else {
-      // Wait 1.5 seconds for background script port to sync before redirecting
-      setTimeout(() => {
-        if (!timeLeft && !timerInterval) {
-          redirectBack();
-        }
-      }, 1500);
+  function updateCountdownTick() {
+    if (!sessionEndTime) {
+      handleTimerCompletion(false);
+      return;
     }
-  });
 
-  // Open runtime connection port to keep service worker alive and sync timer updates
-  try {
-    const port = chrome.runtime.connect({ name: "blocked-page" });
-    port.postMessage({
-      type: "REQUEST_TIMER"
-    });
-    port.onMessage.addListener((msg) => {
-      if (msg && msg.type === "TIMER_UPDATE") {
-        console.log("[FocusShield] Timer Update received:", msg);
-        timeLeft = msg.timeLeft;
-        updateDisplay();
+    const now = Date.now();
+    const remainingSeconds = Math.max(0, Math.ceil((sessionEndTime - now) / 1000));
 
-        if (msg.shieldActive) {
-          if (!timerInterval) {
-            startLocalTimer();
-          }
-        } else {
-          redirectBack();
-        }
-      }
-    });
+    if (countdownEl) {
+      countdownEl.textContent = formatTime(remainingSeconds);
+    }
 
-    // Ping background to prevent worker idle timeout
-    setInterval(() => {
-      try {
-        port.postMessage({ type: "PING" });
-      } catch (e) { }
-    }, 5000);
-  } catch (err) {
-    console.warn("[FocusShield] Failed to establish port connection:", err);
+    if (remainingSeconds <= 0) {
+      handleTimerCompletion(true);
+    }
   }
 
-  // Listen for storage changes to sync timer with background worker updates
-  chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === "local" && changes) {
-      if (changes.remainingTime) {
-        timeLeft = changes.remainingTime.newValue || 0;
-        updateDisplay();
-      }
-      if (changes.shieldActive) {
-        if (changes.shieldActive.newValue) {
-          if (!timerInterval) {
-            startLocalTimer();
-          }
-        } else {
-          // Redirect immediately if shield active is disabled/ends
-          redirectBack();
-        }
+  function startCountdown(endTime) {
+    const endMs = typeof endTime === 'number' ? endTime : (Number(endTime) || Date.parse(endTime));
+    if (!endMs || isNaN(endMs)) {
+      handleTimerCompletion(false);
+      return;
+    }
+
+    sessionEndTime = endMs;
+    const now = Date.now();
+    const remainingSeconds = Math.max(0, Math.ceil((sessionEndTime - now) / 1000));
+
+    if (remainingSeconds <= 0) {
+      handleTimerCompletion(true);
+      return;
+    }
+
+    // Set locked button state while active
+    if (returnSiteBtn) {
+      returnSiteBtn.disabled = true;
+      returnSiteBtn.className = 'btn-return-locked';
+      if (btnLockIcon) btnLockIcon.textContent = '🔒';
+      if (returnBtnLabel) {
+        returnBtnLabel.textContent = 'Return to Website (Locked until session ends)';
       }
     }
-  });
 
-  // Link back to local dashboard port
-  backBtn.addEventListener("click", () => {
-    window.location.href = "http://localhost:5174/";
-  });
+    if (completedNotice) {
+      completedNotice.style.display = 'none';
+    }
 
-  // Close the current tab
-  closeBtn.addEventListener("click", () => {
-    window.close();
-  });
+    if (countdownEl) {
+      countdownEl.textContent = formatTime(remainingSeconds);
+      countdownEl.style.color = '';
+    }
+
+    if (timerInterval) clearInterval(timerInterval);
+    // Run tick every 1000ms
+    timerInterval = setInterval(updateCountdownTick, 1000);
+  }
+
+  // Fetch live session info from local storage or background worker
+  function syncShieldData() {
+    // 1. First directly read from chrome.storage.local for instantaneous hydration
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.get(['shieldActive', 'endTime', 'currentSession'], (data) => {
+        if (!chrome.runtime.lastError && data) {
+          const now = Date.now();
+          const endMs = (typeof data.endTime === 'number' && !isNaN(data.endTime)) ? data.endTime : null;
+
+          if (data.shieldActive && endMs && endMs > now) {
+            if (data.currentSession) {
+              if (sessionTitleEl) sessionTitleEl.textContent = data.currentSession.name || 'Deep Focus Session';
+              if (sessionTypeBadge) sessionTypeBadge.textContent = data.currentSession.sessionType || 'Focus';
+            }
+            startCountdown(endMs);
+            return;
+          }
+        }
+
+        // 2. Query background worker for dynamic state
+        try {
+          chrome.runtime.sendMessage({ type: 'GET_SHIELD_STATE' }, (response) => {
+            if (chrome.runtime.lastError || !response) {
+              return;
+            }
+
+            if (response.success && response.shieldActive && response.endTime && response.endTime > Date.now()) {
+              if (response.currentSession) {
+                if (sessionTitleEl) sessionTitleEl.textContent = response.currentSession.name || 'Deep Focus Session';
+                if (sessionTypeBadge) sessionTypeBadge.textContent = response.currentSession.sessionType || 'Focus';
+              }
+              startCountdown(response.endTime);
+            } else if (!response.shieldActive) {
+              handleTimerCompletion(false);
+            }
+          });
+        } catch {
+          // ignore
+        }
+      });
+    }
+  }
+
+  // Initial Sync on Page Load
+  syncShieldData();
+
+  // Listen for real-time storage changes to keep synced across tabs/windows
+  if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'local') {
+        if (changes.shieldActive || changes.endTime || changes.currentSession) {
+          syncShieldData();
+        }
+      }
+    });
+  }
+
+  // Log blocked attempt telemetry
+  if (domainToShow && typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+    try {
+      chrome.runtime.sendMessage({
+        type: 'LOG_ATTEMPT',
+        website: domainToShow,
+        originalUrl: originalUrl
+      });
+    } catch {}
+  }
+
+  // Return to Website Button Click
+  if (returnSiteBtn) {
+    returnSiteBtn.addEventListener('click', () => {
+      if (returnSiteBtn.disabled) return;
+      redirectBackToOriginalSite();
+    });
+  }
+
+  // Return to FocusFlow App
+  if (backAppBtn) {
+    backAppBtn.addEventListener('click', () => {
+      window.location.href = 'http://localhost:5173/focus-shield';
+    });
+  }
+
+  // Close Tab
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      window.close();
+    });
+  }
 });
+

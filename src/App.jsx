@@ -6,13 +6,13 @@ import Home from './pages/Home';
 import Timer from './pages/Timer';
 import Tasks from './pages/Tasks';
 import Analytics from './pages/Analytics';
-import AIAssistant from './pages/AIAssistant';
 import Settings from './pages/Settings';
 import FocusShield from './pages/FocusShield';
-import AICoach from './pages/AICoach';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import StudyCalendar from './pages/StudyCalendar';
+import HabitTracker from './pages/HabitTracker';
+import DailyPlanner from './pages/DailyPlanner';
 import { AppProvider, useApp } from './context/AppContext';
 
 class ErrorBoundary extends React.Component {
@@ -110,10 +110,10 @@ function AppContent() {
                         <Route path="/" element={<Home />} />
                         <Route path="/timer" element={<Timer />} />
                         <Route path="/tasks" element={<Tasks />} />
+                        <Route path="/planner" element={<DailyPlanner />} />
+                        <Route path="/habits" element={<HabitTracker />} />
                         <Route path="/calendar" element={<StudyCalendar />} />
                         <Route path="/analytics" element={<Analytics />} />
-                        <Route path="/ai" element={<AIAssistant />} />
-                        <Route path="/coach" element={<AICoach />} />
                         <Route path="/shield" element={<FocusShield />} />
                         <Route path="/settings" element={<Settings />} />
                         {/* Friendly Page Not Found fallback */}

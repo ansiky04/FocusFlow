@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusFlow Focus Shield</title>
+  <link rel="stylesheet" href="popup.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="popup-card">
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="brand">
+        <span class="logo-icon">🚀</span>
+        <div class="brand-text">
+          <span class="brand-name">FocusFlow</span>
+          <span class="brand-tag">Focus Shield</span>
+        </div>
+      </div>
+      <span class="student-badge">Built for Students</span>
+    </div>
+
+    <!-- Status Badge -->
+    <div class="status-banner" id="status-banner">
+      <div class="status-indicator">
+        <span class="pulse-dot" id="pulse-dot"></span>
+        <span class="status-title" id="status-title">Checking status...</span>
+      </div>
+      <button id="sync-btn" class="icon-btn" title="Refresh Sync">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Session Details Card -->
+    <div class="session-card" id="session-card">
+      <div class="session-card-header">
+        <span class="label">CURRENT SESSION</span>
+        <span class="session-badge" id="session-type">Focus</span>
+      </div>
+      <div class="session-name" id="session-name">No Active Session</div>
+
+      <div class="timer-box">
+        <span class="timer-label">Remaining Time</span>
+        <div class="timer-digits" id="timer-digits">--:--</div>
+      </div>
+    </div>
+
+    <!-- Metrics Row -->
+    <div class="metrics-grid">
+      <div class="metric-item">
+        <span class="metric-num" id="blocked-count">0</span>
+        <span class="metric-lbl">Blocked Sites</span>
+      </div>
+      <div class="metric-item">
+        <span class="metric-num" id="attempts-count">0</span>
+        <span class="metric-lbl">Interceptions</span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions">
+      <button id="open-app-btn" class="btn-primary">
+        <span>Open FocusFlow</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

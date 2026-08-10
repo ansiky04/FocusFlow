@@ -4,45 +4,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stay Focused | FocusFlow Shield</title>
+  <title>Website Blocked | FocusFlow Shield</title>
   <link rel="stylesheet" href="blocked.css">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 
 <body>
   <div class="container">
     <div class="card">
+      <!-- Glow background accent -->
       <div class="glow"></div>
+      
+      <!-- Rocket Icon badge -->
       <div class="icon-wrapper">
         <span class="rocket-icon">🚀</span>
       </div>
 
-      <h1>Stay Focused</h1>
-      <div class="status-badge">Focus Session Active</div>
+      <!-- Main Headline & Subheadline -->
+      <h1 class="headline">Stay Focused</h1>
+      <p class="subheadline">This website is blocked during your active study session.</p>
 
-      <p class="description">
-        This website is blocked because your Focus Session is active.
-      </p>
+      <!-- Active Session Badge Card -->
+      <div class="session-info-card" id="session-info-card">
+        <div class="session-label-row">
+          <span class="pulse-dot" id="pulse-dot"></span>
+          <span class="session-label">CURRENT STUDY SESSION</span>
+          <span class="session-type-pill" id="session-type-badge">Deep Focus</span>
+        </div>
+        <div class="session-title" id="session-title-text">Focus Session</div>
+      </div>
 
+      <!-- Blocked Domain Display -->
       <div class="target-site-card">
-        <span class="target-label">Blocked Website</span>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px;">
-          <img id="blocked-favicon" src="" alt=""
-            style="width: 18px; height: 18px; border-radius: 4px; display: none;" />
-          <span id="blocked-domain" class="target-domain">domain.com</span>
+        <span class="target-label">WEBSITE BLOCKED</span>
+        <div class="target-domain-box">
+          <img id="blocked-favicon" src="" alt="" style="width: 18px; height: 18px; border-radius: 4px; display: none;" />
+          <span id="blocked-domain" class="target-domain">distraction.com</span>
         </div>
       </div>
 
-      <!-- Countdown clock -->
-      <div class="timer-wrapper">
-        <div class="timer-label">Remaining Focus Time</div>
-        <div id="countdown" class="timer-digits">00:00</div>
+      <!-- Countdown Timer Box -->
+      <div class="timer-wrapper" id="timer-wrapper">
+        <div class="timer-label">Study Session Remaining Time</div>
+        <div id="countdown" class="timer-digits">--:--</div>
       </div>
 
+      <!-- Motivational Quote Section -->
+      <div class="quote-card">
+        <div class="quote-icon">“</div>
+        <p class="quote-text" id="quote-text">The secret of getting ahead is getting started.</p>
+        <span class="quote-author" id="quote-author">— Mark Twain</span>
+      </div>
+
+      <!-- Session Completed Notice (hidden until timer ends) -->
+      <div class="completed-notice" id="completed-notice" style="display: none;">
+        <span class="check-icon">✓</span>
+        <span>Study session completed! Website access is now unlocked.</span>
+      </div>
+
+      <!-- Return Button Section -->
+      <div class="return-button-section">
+        <button id="return-site-btn" class="btn-return-locked" disabled>
+          <span class="btn-lock-icon" id="btn-lock-icon">🔒</span>
+          <span id="return-btn-label">Return to Website (Locked until session ends)</span>
+        </button>
+      </div>
+
+      <!-- Secondary Action Buttons -->
       <div class="action-buttons">
-        <button id="back-btn" class="btn-primary">Return to FocusFlow</button>
+        <button id="back-app-btn" class="btn-primary">Return to FocusFlow</button>
         <button id="close-btn" class="btn-secondary">Close Tab</button>
+      </div>
+
+      <!-- Footer branding -->
+      <div class="footer-brand">
+        <span>Protected by FocusFlow Focus Shield</span>
       </div>
     </div>
   </div>

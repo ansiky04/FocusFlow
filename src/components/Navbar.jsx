@@ -3,7 +3,7 @@ import {
   Sun, 
   Moon, 
   Bell, 
-  Sparkles, 
+  GraduationCap,
   LogOut, 
   Flame, 
   Coffee, 
@@ -11,7 +11,9 @@ import {
   CheckCircle2, 
   Trash2, 
   Check, 
-  Inbox 
+  Inbox,
+  Menu,
+  X
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import logoUrl from '../assets/logo.svg';
@@ -27,7 +29,9 @@ export default function Navbar() {
     markNotificationAsRead,
     markAllNotificationsAsRead,
     deleteNotificationItem,
-    clearAllNotificationItems
+    clearAllNotificationItems,
+    isMobileMenuOpen,
+    toggleMobileMenu
   } = useApp();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -89,16 +93,24 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/85 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/85 transition-colors duration-300">
-      <div className="flex h-16 items-center justify-between px-6">
+      <div className="flex h-16 items-center justify-between px-3.5 sm:px-6">
         
-        {/* Branding */}
-        <div className="flex items-center gap-3">
-          <img src={logoUrl} alt="FocusFlow Logo" className="h-8 w-8 animate-pulse" />
-          <span className="text-xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent tracking-wide">
+        {/* Branding & Mobile Menu Toggle */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+            aria-label="Toggle Mobile Menu"
+          >
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+          <img src={logoUrl} alt="FocusFlow Logo" className="h-7 w-7 sm:h-8 sm:w-8 animate-pulse" />
+          <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent tracking-wide">
             FocusFlow
           </span>
-          <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
-            <Sparkles className="h-3 w-3" /> v1.0
+          <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[#EEF2FF] dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/60 px-2.5 py-1 text-[11px] font-semibold text-[#4F46E5] dark:text-indigo-300">
+            <GraduationCap className="h-3.5 w-3.5 stroke-[2] shrink-0" />
+            <span>Built for Students</span>
           </span>
         </div>
  

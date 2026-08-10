@@ -1,6 +1,7 @@
 import CoachReport from '../models/CoachReport.js';
 import FocusSession from '../models/FocusSession.js';
 import FocusAttempt from '../models/FocusAttempt.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /**
  * Generate a new AI Coach productivity report from past logs.
@@ -28,14 +29,14 @@ export const generateCoachReport = async (req, res, next) => {
     const totalFocusSeconds = sessions.reduce((acc, s) => acc + (s.completed ? s.duration : 0), 0);
     const totalFocusHours = (totalFocusSeconds / 3600).toFixed(1);
 
-    const attemptsLog = attempts.length > 0 
+    const attemptsLog = attempts.length > 0
       ? attempts.map(a => `- Website: ${a.website} at ${new Date(a.time).toLocaleString()}`).join('\n')
       : 'None';
 
-    // Placeholder data fallback if OpenRouter is unconfigured
-    if (!process.env.OPENROUTER_API_KEY) {
-      console.warn("[AICoach] OpenRouter API Key missing. Generating rich placeholder coaching analysis...");
-      
+    // Placeholder data fallback if Gemini is unconfigured
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn("[AICoach] Gemini API Key missing. Generating rich placeholder coaching analysis...");
+
       const suggestedBlocked = [...new Set(attempts.map(a => a.website))];
       if (suggestedBlocked.length === 0) {
         suggestedBlocked.push('youtube.com', 'instagram.com');
@@ -101,51 +102,21 @@ export const generateCoachReport = async (req, res, next) => {
     
     Please run a deep cognitive performance analysis.`;
 
-    // 3. Request analysis from OpenRouter
-    let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://github.com/FocusFlow',
-        'X-Title': 'FocusFlow AI Coach'
-      },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage }
-        ]
-      })
+    // 3. Request analysis from Gemini
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      systemInstruction: systemPrompt,
     });
 
-    // Fallback model call
-    if (!response.ok) {
-      console.warn("[AICoach] Primary Llama model failed. Calling Gemma fallback...");
-      response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://github.com/FocusFlow',
-          'X-Title': 'FocusFlow AI Coach'
-        },
-        body: JSON.stringify({
-          model: 'google/gemma-4-26b-a4b-it:free',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage }
-          ]
-        })
-      });
+    let aiText = "{}";
+    try {
+      const result = await model.generateContent(userMessage);
+      aiText = result.response.text();
+    } catch (apiError) {
+      console.error("[AICoach] Gemini API failed.", apiError);
+      throw new Error(`Gemini API returned an error: ${apiError.message}`);
     }
-
-    if (!response.ok) {
-      throw new Error(`OpenRouter returned status ${response.status}`);
-    }
-
-    const resData = await response.json();
-    const aiText = resData.choices?.[0]?.message?.content || '{}';
 
     // 4. Sanitize and parse JSON response
     let cleanText = aiText.trim();
