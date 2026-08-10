@@ -1,23 +1,19 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Sun,
   SunMedium,
   Sunset,
   Moon,
   Clock,
-  CheckCircle2,
-  Circle,
   Plus,
   Trash2,
   Edit2,
-  MoreVertical,
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   TrendingUp,
   Sparkles,
   CloudSun,
-  CloudRain,
   Wind,
   Droplets,
   BookOpen,
@@ -25,7 +21,6 @@ import {
   Dumbbell,
   Brain,
   FileText,
-  CheckSquare,
   AlertCircle,
   GripVertical,
   Target,
@@ -33,13 +28,9 @@ import {
   RefreshCw,
   Quote,
   StickyNote,
-  ListTodo,
   Check,
   X,
-  Layers,
-  Award,
   Zap,
-  Tag,
   Link2
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
