@@ -17,7 +17,7 @@ chrome.storage.local.get(['shieldActive'], (result) => {
   }
 });
 
-// Navigate to local FocusFlow dashboard
+// Navigate to FocusFlow dashboard
 openBtn.addEventListener('click', () => {
-  chrome.tabs.create({ url: 'http://localhost:5173/' });
+  chrome.tabs.create({ url: 'https://focus-flow-flame-one.vercel.app/' });
 });

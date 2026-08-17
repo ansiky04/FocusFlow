@@ -13,6 +13,8 @@
     "scripting"
   ],
   "host_permissions": [
+    "https://focusflow-api-aazl.onrender.com/*",
+    "https://focus-flow-flame-one.vercel.app/*",
     "http://localhost:5000/*",
     "http://127.0.0.1:5000/*",
     "<all_urls>"
@@ -24,6 +26,7 @@
   "content_scripts": [
     {
       "matches": [
+        "https://focus-flow-flame-one.vercel.app/*",
         "http://localhost:5173/*",
         "http://localhost:5174/*",
         "http://127.0.0.1:5173/*",

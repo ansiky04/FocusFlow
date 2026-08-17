@@ -7,6 +7,19 @@
 import { storage } from '../storage/storageService.js';
 import { NotificationService } from '../services/notificationService.js';
 
+const PROD_API_URL = 'https://focusflow-api-aazl.onrender.com/api';
+const LOCAL_API_URL = 'http://localhost:5000/api';
+
+async function fetchFromBackend(endpoint, options) {
+  try {
+    const res = await fetch(`${PROD_API_URL}${endpoint}`, options);
+    if (res.ok || res.status < 500) return res;
+  } catch {
+    // Fallback to local API
+  }
+  return fetch(`${LOCAL_API_URL}${endpoint}`, options);
+}
+
 export class SyncService {
   constructor(onStateChangeCallback) {
     this.onStateChange = onStateChangeCallback;
@@ -34,7 +47,7 @@ export class SyncService {
 
       // 1. Fetch active session from MongoDB
       try {
-        const sessionRes = await fetch('http://localhost:5000/api/sessions/active', {
+        const sessionRes = await fetchFromBackend('/sessions/active', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (sessionRes.ok) {
@@ -98,7 +111,7 @@ export class SyncService {
       // 2. Fetch blocked sites configuration from MongoDB
       let blockedWebsites = null;
       try {
-        const sitesRes = await fetch('http://localhost:5000/api/block-sites', {
+        const sitesRes = await fetchFromBackend('/block-sites', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (sitesRes.ok) {

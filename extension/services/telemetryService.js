@@ -27,7 +27,9 @@ export class TelemetryService {
 
       // Send telemetry to backend MongoDB if authenticated
       if (token) {
-        fetch('http://localhost:5000/api/focus-attempt', {
+        const prodUrl = 'https://focusflow-api-aazl.onrender.com/api/focus-attempt';
+        const localUrl = 'http://localhost:5000/api/focus-attempt';
+        const sendReq = (url) => fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -38,7 +40,9 @@ export class TelemetryService {
             url: originalUrl,
             timestamp: new Date().toISOString()
           })
-        }).catch((err) => {
+        });
+
+        sendReq(prodUrl).catch(() => sendReq(localUrl)).catch((err) => {
           console.warn('[FocusShield Telemetry] Failed to send telemetry to MongoDB:', err.message);
         });
       }

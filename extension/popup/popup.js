@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Open App Button
   if (openAppBtn) {
     openAppBtn.addEventListener('click', () => {
-      chrome.tabs.create({ url: 'http://localhost:5173/focus-shield' });
+      chrome.tabs.create({ url: 'https://focus-flow-flame-one.vercel.app/shield' });
     });
   }
 });

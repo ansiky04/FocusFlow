@@ -1,6 +1,6 @@
 /**
  * FocusFlow Focus Shield - Content Script Module
- * Injected on http://localhost:5173/* and http://localhost:5174/*
+ * Injected on https://focus-flow-flame-one.vercel.app/*, http://localhost:5173/*, and http://localhost:5174/*
  * Bridges authentication tokens, block lists, and start/end session timestamps to the background worker.
  */
 

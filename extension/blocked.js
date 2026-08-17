@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Return to FocusFlow App
   if (backAppBtn) {
     backAppBtn.addEventListener('click', () => {
-      window.location.href = 'http://localhost:5173/focus-shield';
+      window.location.href = 'https://focus-flow-flame-one.vercel.app/shield';
     });
   }
 
