@@ -140,7 +140,7 @@ export const generateStudyPlan = async (req, res, next) => {
     let parsedPlan = {};
     try {
       parsedPlan = JSON.parse(cleanText);
-    } catch (parseErr) {
+    } catch (_parseErr) {
       console.error("[StudyPlanner] Failed to parse AI JSON response. Text was:", aiText);
       throw new Error("Invalid format returned by AI study planner model.");
     }

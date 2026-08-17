@@ -53,7 +53,7 @@ import {
   Lightbulb,
   Compass as InsightsIcon,
   CheckCircle,
-  Link2
+  Link2,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -68,9 +68,10 @@ import {
   YAxis,
   Tooltip as RechartsTooltip,
   Legend,
-  CartesianGrid
+  CartesianGrid,
 } from 'recharts';
 import { useApp } from '../context/AppContext';
+import { API_BASE_URL } from '../utils/api';
 
 // Icon Map for custom habit icon selection
 const ICON_OPTIONS = [
@@ -437,7 +438,7 @@ export default function HabitTracker() {
     const fetchTrackerTasks = async () => {
       if (token) {
         try {
-          const res = await fetch('http://localhost:5000/api/tasks', {
+          const res = await fetch(`${API_BASE_URL}/tasks`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = await res.json();

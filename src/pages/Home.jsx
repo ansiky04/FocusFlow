@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import { useApp } from '../context/AppContext';
+import { API_BASE_URL } from '../utils/api';
 
 export default function Home() {
   const { user, token } = useApp();
@@ -58,7 +59,7 @@ export default function Home() {
     const fetchAnalytics = async () => {
       if (!token) return;
       try {
-        const response = await fetch('http://localhost:5000/api/analytics', {
+        const response = await fetch(`${API_BASE_URL}/analytics`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -73,7 +74,7 @@ export default function Home() {
     const fetchEvents = async () => {
       if (!token) return;
       try {
-        const response = await fetch('http://localhost:5000/api/calendar', {
+        const response = await fetch(`${API_BASE_URL}/calendar`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -100,7 +101,7 @@ export default function Home() {
     const fetchTasks = async () => {
       if (!token) return;
       try {
-        const response = await fetch('http://localhost:5000/api/tasks', {
+        const response = await fetch(`${API_BASE_URL}/tasks`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -122,7 +123,7 @@ export default function Home() {
     setTasks(prev => prev.map(t => t._id === task._id ? { ...t, status: nextStatus } : t));
     if (!token) return;
     try {
-      await fetch(`http://localhost:5000/api/tasks/${task._id}`, {
+      await fetch(`${API_BASE_URL}/tasks/${task._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -158,7 +159,7 @@ export default function Home() {
     setNotes(updated);
     try {
       localStorage.setItem('focusflow_quick_notes', JSON.stringify(updated));
-    } catch (e) {}
+    } catch (_e) {}
     setNewNoteText('');
     setIsAddingNote(false);
   };
@@ -168,7 +169,7 @@ export default function Home() {
     setNotes(updated);
     try {
       localStorage.setItem('focusflow_quick_notes', JSON.stringify(updated));
-    } catch (e) {}
+    } catch (_e) {}
   };
 
   const getGreeting = () => {

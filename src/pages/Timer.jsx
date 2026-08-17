@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatTime } from '../utils/helpers';
+import { API_BASE_URL } from '../utils/api';
 
 export default function Timer() {
   const {
@@ -45,7 +46,7 @@ export default function Timer() {
     const fetchAnalytics = async () => {
       if (!token) return;
       try {
-        const response = await fetch('http://localhost:5000/api/analytics', {
+        const response = await fetch(`${API_BASE_URL}/analytics`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();

@@ -236,7 +236,6 @@ export default function DailyPlanner() {
   // Modal State for Adding / Editing Tasks
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
-  const [targetBlockForNewTask, setTargetBlockForNewTask] = useState('morning');
 
   // Form Fields
   const [formTitle, setFormTitle] = useState('');

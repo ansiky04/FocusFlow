@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Sparkles, ArrowRight, AlertCircle, Loader } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { API_BASE_URL } from '../utils/api';
 
 export default function Login() {
   const { login } = useApp();
@@ -26,7 +27,7 @@ export default function Login() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -10,13 +10,10 @@ import {
   Download,
   Filter,
   Calendar,
-  ChevronDown,
-  CheckCircle2,
   Zap,
   BarChart3,
   ShieldCheck,
   Globe,
-  Star,
   Check
 } from 'lucide-react';
 import {
@@ -57,6 +54,8 @@ const FULL_DAYS = [
   { short: 'Sun', full: 'Sunday' }
 ];
 
+import { API_BASE_URL } from '../utils/api';
+
 export default function Analytics() {
   const { token } = useApp();
   const [analytics, setAnalytics] = useState(null);
@@ -89,7 +88,7 @@ export default function Analytics() {
       }
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5000/api/analytics', {
+        const response = await fetch(`${API_BASE_URL}/analytics`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();

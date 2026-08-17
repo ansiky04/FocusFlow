@@ -21,7 +21,7 @@ class ErrorBoundary extends React.Component {
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error) {
     return { hasError: true };
   }
 
@@ -75,7 +75,7 @@ function NotFound() {
 }
 
 function AppContent() {
-  const { theme, user, token, isLoading } = useApp();
+  const { theme, token, isLoading } = useApp();
 
   if (isLoading) {
     return (

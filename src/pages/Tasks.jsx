@@ -5,19 +5,16 @@ import {
   Trash2, 
   Edit3, 
   Calendar, 
-  AlertCircle, 
   CheckCircle2,
-  Filter, 
   Check, 
   X,
   Clock,
   Flame,
   TrendingUp,
-  CheckSquare,
-  Square,
   ListTodo
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { API_BASE_URL } from '../utils/api';
 
 export default function Tasks() {
   const { token, user } = useApp();
@@ -67,7 +64,7 @@ export default function Tasks() {
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch (e) {}
+      } catch (_e) {}
     }
     return DEFAULT_HABITS.map(h => ({ ...h, completed: false }));
   });
@@ -86,7 +83,7 @@ export default function Tasks() {
     const fetchTasks = async () => {
       if (!token) return;
       try {
-        const response = await fetch('http://localhost:5000/api/tasks', {
+        const response = await fetch(`${API_BASE_URL}/tasks`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -115,7 +112,7 @@ export default function Tasks() {
     const fetchAnalytics = async () => {
       if (!token) return;
       try {
-        const response = await fetch('http://localhost:5000/api/analytics', {
+        const response = await fetch(`${API_BASE_URL}/analytics`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -132,7 +129,7 @@ export default function Tasks() {
   // API CRUD Actions
   const handleAddTask = async (newTaskData) => {
     try {
-      const response = await fetch('http://localhost:5000/api/tasks', {
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,7 +158,7 @@ export default function Tasks() {
 
   const handleUpdateTask = async (taskId, updatedData) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/tasks/${taskId}`, {
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -190,7 +187,7 @@ export default function Tasks() {
 
   const handleRemoveTask = async (taskId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/tasks/${taskId}`, {
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

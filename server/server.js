@@ -64,7 +64,7 @@ app.use(cookieParser());
 // Database readiness middleware
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/') && req.path !== '/api/health') {
-    if (mongoose.connection.readyState !== 1) {
+    if (mongoose.connection.readyState === 0) {
       return res.status(503).json({
         success: false,
         message: 'Database connection is initializing. Please try again in a moment.'

@@ -20,6 +20,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { API_BASE_URL } from '../utils/api';
 
 // Category color style maps (Google Calendar + Notion inspired)
 const CATEGORY_MAPS = {
@@ -92,7 +93,7 @@ export default function StudyCalendar() {
     if (!token) return;
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/calendar', {
+      const response = await fetch(`${API_BASE_URL}/calendar`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -213,7 +214,7 @@ export default function StudyCalendar() {
     setEvents(updatedEvents);
 
     try {
-      const response = await fetch(`http://localhost:5000/api/calendar/${eventId}`, {
+      const response = await fetch(`${API_BASE_URL}/calendar/${eventId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -305,7 +306,7 @@ export default function StudyCalendar() {
     try {
       let response;
       if (selectedEvent) {
-        response = await fetch(`http://localhost:5000/api/calendar/${selectedEvent._id}`, {
+        response = await fetch(`${API_BASE_URL}/calendar/${selectedEvent._id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -314,7 +315,7 @@ export default function StudyCalendar() {
           body: JSON.stringify(payload)
         });
       } else {
-        response = await fetch('http://localhost:5000/api/calendar', {
+        response = await fetch(`${API_BASE_URL}/calendar`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -343,7 +344,7 @@ export default function StudyCalendar() {
     if (!window.confirm(`Delete the event "${selectedEvent.title}"?`)) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/calendar/${selectedEvent._id}`, {
+      const response = await fetch(`${API_BASE_URL}/calendar/${selectedEvent._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

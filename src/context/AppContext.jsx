@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { API_BASE_URL } from '../utils/api';
 
 const AppContext = createContext(undefined);
 
@@ -180,7 +181,7 @@ export function AppProvider({ children }) {
   const fetchUserNotifications = useCallback(async () => {
     if (!token) return;
     try {
-      const response = await fetch('http://localhost:5000/api/notifications', {
+      const response = await fetch(`${API_BASE_URL}/notifications`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -205,7 +206,7 @@ export function AppProvider({ children }) {
     setUnreadCount(prev => Math.max(0, prev - 1));
 
     try {
-      await fetch(`http://localhost:5000/api/notifications/${notifId}`, {
+      await fetch(`${API_BASE_URL}/notifications/${notifId}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -219,7 +220,7 @@ export function AppProvider({ children }) {
     setUnreadCount(0);
 
     try {
-      await fetch('http://localhost:5000/api/notifications/read-all', {
+      await fetch(`${API_BASE_URL}/notifications/read-all`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -236,7 +237,7 @@ export function AppProvider({ children }) {
     });
 
     try {
-      await fetch(`http://localhost:5000/api/notifications/${notifId}`, {
+      await fetch(`${API_BASE_URL}/notifications/${notifId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -250,7 +251,7 @@ export function AppProvider({ children }) {
     setUnreadCount(0);
 
     try {
-      await fetch('http://localhost:5000/api/notifications/clear-all', {
+      await fetch(`${API_BASE_URL}/notifications/clear-all`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -287,7 +288,7 @@ export function AppProvider({ children }) {
     // 2. Save Notification to Database
     if (token) {
       try {
-        await fetch('http://localhost:5000/api/notifications', {
+        await fetch(`${API_BASE_URL}/notifications`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -308,7 +309,7 @@ export function AppProvider({ children }) {
   const fetchCalendarEvents = useCallback(async () => {
     if (!token) return;
     try {
-      const response = await fetch('http://localhost:5000/api/calendar', {
+      const response = await fetch(`${API_BASE_URL}/calendar`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -424,7 +425,7 @@ export function AppProvider({ children }) {
       }
       
       try {
-        const response = await fetch('http://localhost:5000/api/auth/me', {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -454,7 +455,7 @@ export function AppProvider({ children }) {
     const fetchSettings = async () => {
       if (!token || !user) return;
       try {
-        const response = await fetch('http://localhost:5000/api/settings', {
+        const response = await fetch(`${API_BASE_URL}/settings`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -505,7 +506,7 @@ export function AppProvider({ children }) {
 
     const syncTimeout = setTimeout(async () => {
       try {
-        await fetch('http://localhost:5000/api/settings', {
+        await fetch(`${API_BASE_URL}/settings`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -640,7 +641,7 @@ export function AppProvider({ children }) {
 
     if (token && prevActiveSession) {
       try {
-        await fetch('http://localhost:5000/api/sessions/active', {
+        await fetch(`${API_BASE_URL}/sessions/active`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -718,7 +719,7 @@ export function AppProvider({ children }) {
       
       if (activeSession.sessionType !== modeToSessionType[mode]) {
         if (token) {
-          fetch('http://localhost:5000/api/sessions/active', {
+          fetch(`${API_BASE_URL}/sessions/active`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -774,7 +775,7 @@ export function AppProvider({ children }) {
     const fetchSessionCount = async () => {
       if (!token || !user) return;
       try {
-        const response = await fetch('http://localhost:5000/api/analytics', {
+        const response = await fetch(`${API_BASE_URL}/analytics`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -793,7 +794,7 @@ export function AppProvider({ children }) {
     const retrieveActiveSession = async () => {
       if (!token || !user) return;
       try {
-        const response = await fetch('http://localhost:5000/api/sessions/active', {
+        const response = await fetch(`${API_BASE_URL}/sessions/active`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
@@ -996,7 +997,7 @@ export function AppProvider({ children }) {
       try {
         if (nextIsActive) {
           if (activeSession) {
-            const response = await fetch('http://localhost:5000/api/sessions/active', {
+            const response = await fetch(`${API_BASE_URL}/sessions/active`, {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',
@@ -1010,7 +1011,7 @@ export function AppProvider({ children }) {
             }
           } else {
             const sessionTypeMap = mode === 'focus' ? 'Focus' : mode === 'short' ? 'Short Break' : 'Long Break';
-            const response = await fetch('http://localhost:5000/api/sessions/start', {
+            const response = await fetch(`${API_BASE_URL}/sessions/start`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -1025,7 +1026,7 @@ export function AppProvider({ children }) {
           }
         } else {
           if (activeSession) {
-            const response = await fetch('http://localhost:5000/api/sessions/active', {
+            const response = await fetch(`${API_BASE_URL}/sessions/active`, {
               method: 'PUT',
               headers: {
                 'Content-Type': 'application/json',
@@ -1072,7 +1073,7 @@ export function AppProvider({ children }) {
 
     if (token && prevActiveSession) {
       try {
-        await fetch('http://localhost:5000/api/sessions/active', {
+        await fetch(`${API_BASE_URL}/sessions/active`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -1115,7 +1116,7 @@ export function AppProvider({ children }) {
 
     if (token && prevActiveSession) {
       try {
-        await fetch('http://localhost:5000/api/sessions/active', {
+        await fetch(`${API_BASE_URL}/sessions/active`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

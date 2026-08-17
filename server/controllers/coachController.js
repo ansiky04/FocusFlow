@@ -129,7 +129,7 @@ export const generateCoachReport = async (req, res, next) => {
     let parsedReport = {};
     try {
       parsedReport = JSON.parse(cleanText);
-    } catch (parseErr) {
+    } catch (_parseErr) {
       console.error("[AICoach] Failed to parse AI JSON response. Text was:", aiText);
       throw new Error("Invalid format returned by AI model.");
     }

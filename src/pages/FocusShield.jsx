@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatTime } from '../utils/helpers';
+import { API_BASE_URL } from '../utils/api';
 
 // 6 Core Categories with preset popular distraction domains
 const CATEGORY_DEFINITIONS = [
@@ -514,7 +515,7 @@ export default function FocusShield() {
       let loadedFromApi = false;
       if (token) {
         try {
-          const response = await fetch('http://localhost:5000/api/block-sites', {
+          const response = await fetch(`${API_BASE_URL}/block-sites`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const data = await response.json();
@@ -618,7 +619,7 @@ export default function FocusShield() {
     let addedSite = null;
     if (token) {
       try {
-        const response = await fetch('http://localhost:5000/api/block-sites', {
+        const response = await fetch(`${API_BASE_URL}/block-sites`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -668,7 +669,7 @@ export default function FocusShield() {
 
     if (token && site._id && !site._id.startsWith('site_') && !site._id.startsWith('seed_')) {
       try {
-        await fetch(`http://localhost:5000/api/block-sites/${site._id}`, {
+        await fetch(`${API_BASE_URL}/block-sites/${site._id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -694,7 +695,7 @@ export default function FocusShield() {
 
     if (token && siteId && !siteId.startsWith('site_') && !siteId.startsWith('seed_')) {
       try {
-        await fetch(`http://localhost:5000/api/block-sites/${siteId}`, {
+        await fetch(`${API_BASE_URL}/block-sites/${siteId}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -727,7 +728,7 @@ export default function FocusShield() {
 
     if (token && siteId && !siteId.startsWith('site_') && !siteId.startsWith('seed_')) {
       try {
-        await fetch(`http://localhost:5000/api/block-sites/${siteId}`, {
+        await fetch(`${API_BASE_URL}/block-sites/${siteId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -1007,7 +1008,7 @@ export default function FocusShield() {
   }, [sessionsHistory, historySearchQuery, historyStatusFilter]);
 
   // Statistics Calculations
-  const totalActiveBlockedSitesCount = useMemo(() => {
+  const _totalActiveBlockedSitesCount = useMemo(() => {
     return blockedSites.filter(s => s.enabled).length;
   }, [blockedSites]);
 
