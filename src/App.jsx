@@ -115,6 +115,7 @@ function AppContent() {
                         <Route path="/calendar" element={<StudyCalendar />} />
                         <Route path="/analytics" element={<Analytics />} />
                         <Route path="/shield" element={<FocusShield />} />
+                        <Route path="/focus-shield" element={<FocusShield />} />
                         <Route path="/settings" element={<Settings />} />
                         {/* Friendly Page Not Found fallback */}
                         <Route path="*" element={<NotFound />} />
