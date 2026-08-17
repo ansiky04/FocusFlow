@@ -27,3 +27,16 @@ dist-ssr
 .env.*
 !.env.example
 server/.env
+
+# Android build outputs
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+android/.idea
+android/*.iml
+android/captures
+*.apk
+*.aar
+*.keystore
+*.jks
