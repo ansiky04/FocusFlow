@@ -115,11 +115,19 @@ export class RuleEngine {
   static generateDynamicRules(blockedWebsites = [], allowedWebsites = []) {
     const rules = [];
     const usedRuleIds = new Set();
-    const blockedPageBaseUrl = chrome.runtime.getURL('blocked.html');
 
-    // 1. Deduplicate and sanitize allowed websites
+    // 1. Deduplicate and sanitize allowed websites (including system protection for FocusFlow app/API)
+    const systemAppDomains = [
+      'focus-flow-flame-one.vercel.app',
+      'focusflow-api-aazl.onrender.com',
+      'onrender.com',
+      'localhost',
+      '127.0.0.1'
+    ];
+    const mergedAllowed = [...(Array.isArray(allowedWebsites) ? allowedWebsites : []), ...systemAppDomains];
+
     const uniqueAllowed = Array.from(new Set(
-      (Array.isArray(allowedWebsites) ? allowedWebsites : [])
+      mergedAllowed
         .filter(site => site && typeof site === 'string' && site.trim().length > 0)
         .map(site => this.sanitizePattern(site))
         .filter(site => site.length > 0)
@@ -159,6 +167,7 @@ export class RuleEngine {
     });
 
     // 4. Block & Redirect rules (REDIRECT action with standard priority: 1)
+    // Note: In Chrome MV3 DeclarativeNetRequest, regexSubstitution MUST be a root-relative path starting with '/'
     uniqueBlocked.forEach((blockedPattern) => {
       const regexFilter = this.buildRegexFilter(blockedPattern);
       let ruleId = this.getDeterministicRuleId(blockedPattern, false);
@@ -168,7 +177,7 @@ export class RuleEngine {
       }
       usedRuleIds.add(ruleId);
 
-      const redirectUrl = `${blockedPageBaseUrl}?website=${encodeURIComponent(blockedPattern)}&url=\\1`;
+      const redirectUrl = `/blocked.html?website=${encodeURIComponent(blockedPattern)}&url=\\1`;
 
       rules.push({
         id: ruleId,

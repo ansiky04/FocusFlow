@@ -21,7 +21,7 @@ async function scanAndRedirectActiveTabs() {
     const { shieldActive, endTime, blockedWebsites, allowedWebsites } = await storage.getAll();
     const now = Date.now();
     const endMs = (typeof endTime === 'number' && !isNaN(endTime)) ? endTime : null;
-    const isExpired = !endMs || now >= endMs;
+    const isExpired = endMs ? now >= endMs : false;
 
     if (!shieldActive || isExpired || !Array.isArray(blockedWebsites) || blockedWebsites.length === 0) {
       return;
@@ -81,10 +81,10 @@ async function updateDeclarativeRules() {
     const { shieldActive, endTime, blockedWebsites, allowedWebsites, currentSession } = await storage.getAll();
     const now = Date.now();
     const endMs = (typeof endTime === 'number' && !isNaN(endTime)) ? endTime : null;
-    const isExpired = !endMs || now >= endMs;
-    const effectiveShieldActive = Boolean(shieldActive && endMs && !isExpired);
+    const isExpired = endMs ? now >= endMs : false;
+    const effectiveShieldActive = Boolean(shieldActive && !isExpired);
 
-    if (shieldActive && isExpired) {
+    if (shieldActive && endMs && isExpired) {
       console.log('[FocusShield Background] Session expired. Automatically clearing shield and rules.');
       // Auto-expire session
       await storage.clearActiveSession();
@@ -109,14 +109,19 @@ async function updateDeclarativeRules() {
       addRules = RuleEngine.generateDynamicRules(activeBlockedWebsites, allowedWebsites || []);
       console.log(`[FocusShield Background] Applied ${addRules.length} dynamic DNR rules for ${activeBlockedWebsites.join(', ')}.`);
       
-      // Schedule exact expiration alarm
+      // Schedule exact expiration alarm & 1-minute ending soon alarm
       if (endMs && endMs > now) {
         chrome.alarms.create('session_expiration', { when: endMs });
+        const endingSoonTime = endMs - 60000;
+        if (endingSoonTime > now) {
+          chrome.alarms.create('session_ending_soon', { when: endingSoonTime });
+        }
       }
     } else {
       console.log('[FocusShield Background] Shield inactive or expired. All blocker rules cleared.');
       try {
         chrome.alarms.clear('session_expiration');
+        chrome.alarms.clear('session_ending_soon');
       } catch {}
     }
 
@@ -126,7 +131,11 @@ async function updateDeclarativeRules() {
       addRules
     });
 
-    // 4. If shield is active, immediately redirect any already-open matching tabs across all windows
+    // 4. Verify rule registration
+    const verifiedRules = await chrome.declarativeNetRequest.getDynamicRules();
+    console.log(`[FocusShield Background] Dynamic rules updated. Verified active DNR rule count: ${verifiedRules.length}`);
+
+    // 5. If shield is active, immediately redirect any already-open matching tabs across all windows
     if (effectiveShieldActive) {
       scanAndRedirectActiveTabs();
     }
@@ -188,16 +197,32 @@ chrome.runtime.onStartup.addListener(async () => {
 
 // Alarm Listener for exact session expiration & periodic background heartbeat
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === 'session_expiration' || alarm.name === 'focusflow_heartbeat') {
-    const { shieldActive, endTime } = await storage.getAll();
-    const endMs = (typeof endTime === 'number' && !isNaN(endTime)) ? endTime : null;
-    if (shieldActive && (!endMs || Date.now() >= endMs)) {
-      await updateDeclarativeRules();
-    }
+  const { shieldActive, endTime, currentSession } = await storage.getAll();
+  const endMs = (typeof endTime === 'number' && !isNaN(endTime)) ? endTime : null;
 
-    if (alarm.name === 'focusflow_heartbeat' && syncServiceInstance) {
-      await syncServiceInstance.syncWithBackend();
+  if (alarm.name === 'session_ending_soon') {
+    if (shieldActive && endMs && Date.now() < endMs) {
+      await NotificationService.notifySessionEndingSoon(
+        currentSession?.name || 'Focus Session',
+        1,
+        currentSession?.id
+      );
     }
+  }
+
+  if (alarm.name === 'session_expiration') {
+    if (shieldActive && (!endMs || Date.now() >= endMs)) {
+      await storage.clearActiveSession();
+      await updateDeclarativeRules();
+      await NotificationService.notifySessionCompleted(
+        currentSession?.name || 'Focus Session',
+        currentSession?.id
+      );
+    }
+  }
+
+  if (alarm.name === 'focusflow_heartbeat' && syncServiceInstance) {
+    await syncServiceInstance.syncWithBackend();
   }
 });
 
@@ -289,13 +314,17 @@ async function handleAppStateSync(payload, sendResponse) {
       await updateDeclarativeRules();
 
       // Fire notifications ONLY on meaningful event transitions
-      if (sessionStarted || sessionChanged) {
-        NotificationService.notifySessionStarted(
+      if (sessionStarted) {
+        await NotificationService.notifySessionStarted(
           updatedSession?.name || 'Focus Session',
-          updatedSession?.durationMinutes || 25
+          updatedSession?.durationMinutes || 25,
+          updatedSession?.id
         );
       } else if (sessionEnded) {
-        NotificationService.notifySessionCompleted(currentData.currentSession?.name || 'Study Session');
+        await NotificationService.notifySessionCompleted(
+          currentData.currentSession?.name || 'Focus Session',
+          currentData.currentSession?.id
+        );
       }
     }
 
@@ -308,6 +337,23 @@ async function handleAppStateSync(payload, sendResponse) {
 
 // Message Listener for inter-module & web app communication
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // 0. Direct START / STOP session requests
+  if (message.type === 'START_SESSION') {
+    console.log('[FocusShield Background] START_SESSION message received');
+    handleAppStateSync({
+      session: message.session,
+      blockedWebsites: message.blockedWebsites,
+      allowedWebsites: message.allowedWebsites
+    }, sendResponse);
+    return true;
+  }
+
+  if (message.type === 'STOP_SESSION') {
+    console.log('[FocusShield Background] STOP_SESSION message received');
+    handleAppStateSync({ session: null }, sendResponse);
+    return true;
+  }
+
   // Consolidated App State Sync from Content Script
   if (message.type === 'SYNC_APP_STATE') {
     handleAppStateSync(message, sendResponse);
@@ -405,7 +451,8 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   const { shieldActive, endTime, blockedWebsites, allowedWebsites } = await storage.getAll();
   const now = Date.now();
   const endMs = (typeof endTime === 'number' && !isNaN(endTime)) ? endTime : null;
-  if (!shieldActive || !endMs || now >= endMs || !Array.isArray(blockedWebsites) || blockedWebsites.length === 0) return;
+  const isExpired = endMs ? now >= endMs : false;
+  if (!shieldActive || isExpired || !Array.isArray(blockedWebsites) || blockedWebsites.length === 0) return;
 
   const url = details.url;
   if (
